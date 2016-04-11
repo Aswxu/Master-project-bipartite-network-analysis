@@ -84,6 +84,9 @@ s.mat.brim.gp.list<-NULL
 norm.mut.info.brim.vec<-NULL
 for(i in 1:n.net){
   #BRIM and save the result
+  #It needs the input matrix to content no all-zero row/column, need preprocessing.
+  
+  
   res.brim.list[[length(res.brim.list)+1]]<-findModules(link.data[[i]],spar=FALSE)
   #extract S-matrix list for GPs only
   s.mat.brim.gp.list[[length(s.mat.brim.gp.list)+1]]<-res.brim.list[[i]]$S[1:ngp,]
