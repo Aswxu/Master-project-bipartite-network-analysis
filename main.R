@@ -63,7 +63,7 @@ brim.mut.info<-function(link.data,ind.vec,n.net,s.mat.gp.true){
   norm.mut.info.brim.vec
 }
 
-#function #4 using the walktrap algorithm on the projection of the bipartite graph to get the result
+#function #4 using the optimal? algorithm on the projection of the bipartite graph to get the result
 proj.mut.info<-function(link.data,ind.vec,n.net,s.mat.gp.true){
   norm.mut.info.proj.vec<-NULL
   ngp=sum(ind.vec)
@@ -75,7 +75,7 @@ proj.mut.info<-function(link.data,ind.vec,n.net,s.mat.gp.true){
     V(temp.bipa.graph)$name<-c(1:(npa+ngp))
     V(temp.bipa.graph)$type<-ind.vec==0
     temp.proj.graph<-bipartite_projection(temp.bipa.graph)$proj1
-    wc<-membership(cluster_walktrap(temp.proj.graph))
+    wc<-membership(cluster_optimal(temp.proj.graph))
     s.mat.proj.gp<-matrix(0,ncol=max(wc),nrow=ngp)
     for(j in 1:ngp)s.mat.proj.gp[j,wc[j]]<-1
     norm.mut.info.proj.vec<-c(norm.mut.info.proj.vec,norm.mut.infor(s.mat.gp.true,s.mat.proj.gp))
@@ -95,8 +95,8 @@ npa<-50
 #number of communitys #TRUE#
 ncomm.true<-5
 #Probability of the link construction
-p.in=0.6
-p.out=0.3
+p.in=0.8
+p.out=0.4
 #numbers of networks generated
 n.net=1000
 #debugging setting
@@ -123,6 +123,6 @@ norm.mut.info.brim.vec<-brim.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
 
 
 
-#Projected Unipartite-walktrap
+#Projected Unipartite-optimal?
 norm.mut.info.proj.vec<-proj.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
 
