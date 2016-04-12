@@ -44,12 +44,29 @@ norm.mut.infor<-function(s.mat.gp.true,s.mat.gp){
     norm.info
 }
 
+#function #3 using the BRIM algorithm to compute the result
+brim.mut.info<-function(link.data,n.net){
+  norm.mut.info.brim.vec<-NULL
+  for(i in 1:n.net){
+    #It needs the input matrix to content no all-zero row/column, need removal of all-zero column.
+    #What if there are all-zero rows? No, all-zero row hardly exist.
+    zero.ind<-!apply(link.data[[i]],2,"sum")==0
+    input<-link.data[[i]][,zero.ind]
+    #BRIM
+    res.brim<-findModules(input,spar=FALSE)
+    #extract S-matrix list for GPs only
+    s.mat.brim.gp<-res.brim$S[1:ngp,]
+    #Compute the normalized mutual information for all n.net networks
+    norm.mut.info.brim.vec<-c(norm.mut.info.brim.vec,norm.mut.infor(s.mat.gp.true,s.mat.brim.gp))
+  }
+  norm.mut.info.brim.vec
+}
 
 
 
 #control parameters
 #setseed
-set.seed(1132)
+set.seed(2389)
 #number of GP
 ngp<-20
 #number of patients
@@ -57,8 +74,8 @@ npa<-50
 #number of communitys #TRUE#
 ncomm.true<-5
 #Probability of the link construction
-p.in=0.8
-p.out=0.5
+p.in=0.6
+p.out=0.3
 #numbers of networks generated
 n.net=1000
 #debugging setting
@@ -78,21 +95,11 @@ ind.vec<-c(rep(1,ngp),rep(0,npa))
 link.data<-link.create(ind.vec,comm.ind.true,p.in,p.out,n.net)
 
 
-#Bipartite-BRIM#oping
-res.brim.list<-NULL
-s.mat.brim.gp.list<-NULL
-norm.mut.info.brim.vec<-NULL
-for(i in 1:n.net){
-  #BRIM and save the result
-  #It needs the input matrix to content no all-zero row/column, need preprocessing.
-  
-  
-  res.brim.list[[length(res.brim.list)+1]]<-findModules(link.data[[i]],spar=FALSE)
-  #extract S-matrix list for GPs only
-  s.mat.brim.gp.list[[length(s.mat.brim.gp.list)+1]]<-res.brim.list[[i]]$S[1:ngp,]
-  #Compute the normalized mutual information for all n.net networks
-  norm.mut.info.brim.vec<-c(norm.mut.info.brim.vec,norm.mut.infor(s.mat.gp.true,s.mat.brim.gp.list[[i]]))
-}
+
+
+#Bipartite-BRIM
+norm.mut.info.brim.vec<-brim.mut.info(link.data,n.net)
+
 
 
 #Projected Unipartite-walktrap
