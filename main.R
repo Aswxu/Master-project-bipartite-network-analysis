@@ -45,8 +45,9 @@ norm.mut.infor<-function(s.mat.gp.true,s.mat.gp){
 }
 
 #function #3 using the BRIM algorithm to compute the result
-brim.mut.info<-function(link.data,n.net){
+brim.mut.info<-function(link.data,ind.vec,n.net,s.mat.gp.true){
   norm.mut.info.brim.vec<-NULL
+  ngp<-sum(ind.vec)
   for(i in 1:n.net){
     #It needs the input matrix to content no all-zero row/column, need removal of all-zero column.
     #What if there are all-zero rows? No, all-zero row hardly exists.
@@ -63,7 +64,7 @@ brim.mut.info<-function(link.data,n.net){
 }
 
 #function #4 using the walktrap algorithm on the projection of the bipartite graph to get the result
-proj.mut.info<-function(link.data,ind.vec,n.net){
+proj.mut.info<-function(link.data,ind.vec,n.net,s.mat.gp.true){
   norm.mut.info.proj.vec<-NULL
   ngp=sum(ind.vec)
   for(i in 1:n.net){
@@ -118,10 +119,10 @@ link.data<-link.create(ind.vec,comm.ind.true,p.in,p.out,n.net)
 
 
 #Bipartite-BRIM
-norm.mut.info.brim.vec<-brim.mut.info(link.data,n.net)
+norm.mut.info.brim.vec<-brim.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
 
 
 
 #Projected Unipartite-walktrap
-norm.mut.info.proj.vec<-proj.mut.info(link.data,ind.vec,n.net)
+norm.mut.info.proj.vec<-proj.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
 
