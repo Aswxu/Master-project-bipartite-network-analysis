@@ -49,7 +49,7 @@ brim.mut.info<-function(link.data,n.net){
   norm.mut.info.brim.vec<-NULL
   for(i in 1:n.net){
     #It needs the input matrix to content no all-zero row/column, need removal of all-zero column.
-    #What if there are all-zero rows? No, all-zero row hardly exist.
+    #What if there are all-zero rows? No, all-zero row hardly exists.
     zero.ind<-!apply(link.data[[i]],2,"sum")==0
     input<-link.data[[i]][,zero.ind]
     #BRIM
@@ -60,6 +60,26 @@ brim.mut.info<-function(link.data,n.net){
     norm.mut.info.brim.vec<-c(norm.mut.info.brim.vec,norm.mut.infor(s.mat.gp.true,s.mat.brim.gp))
   }
   norm.mut.info.brim.vec
+}
+
+#function #4 using the walktrap algorithm on the projection of the bipartite graph to get the result
+proj.mut.info<-function(link.data,ind.vec,n.net){
+  norm.mut.info.proj.vec<-NULL
+  ngp=sum(ind.vec)
+  for(i in 1:n.net){
+    #make adjacency matrix
+    link.data.adj<-rbind(cbind(matrix(rep(0,ngp^2),ncol=ngp),link.data[[i]]),cbind(t(link.data[[i]]),matrix(rep(0,npa^2),ncol=npa)))
+    #produce the bipartite graph object
+    temp.bipa.graph<-graph_from_adjacency_matrix(link.data.adj)
+    V(temp.bipa.graph)$name<-c(1:(npa+ngp))
+    V(temp.bipa.graph)$type<-ind.vec==0
+    temp.proj.graph<-bipartite_projection(temp.bipa.graph)$proj1
+    wc<-membership(cluster_walktrap(temp.proj.graph))
+    s.mat.proj.gp<-matrix(0,ncol=max(wc),nrow=ngp)
+    for(j in 1:ngp)s.mat.proj.gp[j,wc[j]]<-1
+    norm.mut.info.proj.vec<-c(norm.mut.info.proj.vec,norm.mut.infor(s.mat.gp.true,s.mat.proj.gp))
+  }
+  norm.mut.info.proj.vec
 }
 
 
@@ -103,17 +123,5 @@ norm.mut.info.brim.vec<-brim.mut.info(link.data,n.net)
 
 
 #Projected Unipartite-walktrap
-#create adjacency matrix for each network
-link.data.adj<-NULL
-bipa.graph.list<-NULL
-for(i in 1:n.net){
-  #make adjacency matrix
-  link.data.adj[[length(link.data.adj)+1]]=rbind(cbind(matrix(rep(0,ngp^2),ncol=ngp),link.data[[i]]),cbind(t(link.data[[i]]),matrix(rep(0,npa^2),ncol=npa)))
-  #produce the bipartite graph object
-  temp<-graph_from_adjacency_matrix(link.data.adj[[i]])
-  V(temp)$name<-c(1:(npa+ngp))
-  V(temp)$type<-bipartite_mapping(temp)$type
-  bipa.graph.list[[length(bipa.graph.list)+1]]<-temp
-  
-}
+norm.mut.info.proj.vec<-proj.mut.info(link.data,ind.vec,n.net)
 
