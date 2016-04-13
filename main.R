@@ -4,6 +4,7 @@
 require(igraph)
 require(lpbrim)
 require(bipartite)
+require(Matrix)
 
 #funtions that used later
 #function #1 that create links
@@ -84,7 +85,7 @@ proj.mut.info<-function(link.data,ind.vec,n.net,s.mat.gp.true){
 }
 
 
-
+#Part 1 #for a set p.in/p.out
 #control parameters
 #setseed
 set.seed(2389)
@@ -95,8 +96,8 @@ npa<-50
 #number of communitys #TRUE#
 ncomm.true<-5
 #Probability of the link construction
-p.in=0.8
-p.out=0.4
+p.in=0.6
+p.out=0.3
 #numbers of networks generated
 n.net=1000
 #debugging setting
@@ -112,17 +113,118 @@ for(i in 1:ngp){
 }
 #index of whether i-th vertex is gp or not
 ind.vec<-c(rep(1,ngp),rep(0,npa))
-#simulate n.net network links adjacency matrix
+#simulate n.net network links matrix
 link.data<-link.create(ind.vec,comm.ind.true,p.in,p.out,n.net)
-
-
 
 
 #Bipartite-BRIM
 norm.mut.info.brim.vec<-brim.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
 
 
-
 #Projected Unipartite-optimal?
 norm.mut.info.proj.vec<-proj.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
 
+
+#Part 2 #for different set p.in/p.out
+#I write it as a function
+#a huge one
+
+#control parameters
+#setseed
+set.seed(2389)
+
+#Probability of the link construction
+# Say p.in have a upper bound 1, lower bound 0.5
+#p.out is always less than p.in, lower bound 0.1
+#takeing step=0.01
+p.in.upper=1
+p.in.lower=0.5
+p.out.lower=0.1
+step=0.01
+
+#number of GP
+ngp<-20
+#number of patients
+npa<-50
+#number of communitys #TRUE#
+ncomm.true<-5
+
+#numbers of networks generated
+n.net=1000
+#debugging setting
+#n.net=1
+
+
+
+#function #5 crazy function study for the possible influences for the p.in/p.out setting
+crazy.function<-function(p.in.lower,p.in.upper,step,p.out.lower,n.net,ngp,npa,ncomm.true){
+  result.list<-NULL
+  p.in.vec<-seq(p.in.lower,p.in.upper,step)
+  for(p.in in p.in.vec){
+    p.out.vec<-seq(p.out.lower,p.in,step)
+    temp.result.list.sub<-NULL
+    for(p.out in p.out.vec){
+      #simulation before apply algorithms
+      #specify the #TRUE# index vector&matrix
+      comm.ind.true<-ceiling(runif((ngp+npa),0,ncomm.true))
+      # true S-martix for GPs only
+      s.mat.gp.true<-matrix(0,ncol=ncomm.true,nrow=ngp)
+      for(i in 1:ngp){
+        s.mat.gp.true[i,comm.ind.true[i]]<-1
+      }
+      #index of whether i-th vertex is gp or not
+      ind.vec<-c(rep(1,ngp),rep(0,npa))
+      #simulate n.net network links matrix
+      link.data<-link.create(ind.vec,comm.ind.true,p.in,p.out,n.net)
+      
+      #Bipartite-BRIM
+      norm.mut.info.brim.vec<-brim.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
+            
+      #Projected Unipartite-optimal?
+      norm.mut.info.proj.vec<-proj.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
+      
+      temp.result.list<-list(p.in=p.in,p.out=p.out,BRIM=norm.mut.info.brim.vec,Projection=norm.mut.info.proj.vec)
+      
+      temp.result.list.sub[[length(temp.result.list.sub)+1]]<-temp.result.list
+    }
+    result.list[[length(result.list)+1]]<-temp.result.list.sub
+  }
+  result.list
+}
+
+
+
+cross.fingers<-crazy.function(p.in.lower,p.in.upper,step,p.out.lower,n.net,ngp,npa,ncomm.true)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#real GP-patients dataset
+#the scrambled_ppn have a initial shift of 99(1->100), therefore create a new raw.csv dataset file.
+#Convert the raw data into a huge matrix and store it as "Medicare_link_data"
+#raw<-read.csv("raw.csv",header=TRUE)
+#medicare.link.data<-Matrix(0,nrow=max(raw$scrambled_prov),ncol=max(raw$scrambled_ppn))
+#for(i in 1:nrow(raw)){
+#  temp<-raw[i,]
+#  medicare.link.data[temp$scrambled_prov,temp$scrambled_ppn]<-medicare.link.data[temp$scrambled_prov,temp$scrambled_ppn]+1
+#}
+#writeMM(medcare.link.data,file="Medicare_link_data")
+medicare.link.data<-readMM("Medicare_link_data")
