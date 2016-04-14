@@ -50,14 +50,29 @@ brim.mut.info<-function(link.data,ind.vec,n.net,s.mat.gp.true){
   norm.mut.info.brim.vec<-NULL
   ngp<-sum(ind.vec)
   for(i in 1:n.net){
-    #It needs the input matrix to content no all-zero row/column, need removal of all-zero column.
-    #What if there are all-zero rows? No, all-zero row hardly exists.
-    zero.ind<-!apply(link.data[[i]],2,"sum")==0
-    input<-link.data[[i]][,zero.ind]
+    #It needs the input matrix to content no all-zero row/column, need removal of all-zero columns&rows.
+    #zero-columns, easier to be treated
+    nozero.ind.col<-!apply(link.data[[i]],2,"sum")==0
+    input<-link.data[[i]][,nozero.ind.col]
+    #zero-rows, a bit harder
+    nozero.ind.row<-!apply(input,1,"sum")==0
+    post.treat=FALSE
+    if(sum(nozero.ind.row)!=ngp){
+      post.treat=TRUE
+      input<-input[nozero.ind.row,]
+    }
     #BRIM
     res.brim<-findModules(input,spar=FALSE)
     #extract S-matrix list for GPs only
-    s.mat.brim.gp<-res.brim$S[1:ngp,]
+    if(post.treat){
+      s.mat.brim.gp<-matrix(0,nrow=ngp,ncol=ncol(res.brim$S))
+      s.mat.brim.gp[nozero.ind.row,]<-res.brim$S[1:sum(nozero.ind.row),]
+      addition<-matrix(0,nrow=ngp,ncol=sum(!nozero.ind.row))
+      addition[!nozero.ind.row,]<-diag(1,sum(!nozero.ind.row),sum(!nozero.ind.row))
+      s.mat.brim.gp<-cbind(s.mat.brim.gp,addition)      
+    }else{
+      s.mat.brim.gp<-res.brim$S[1:ngp,]
+    }
     #Compute the normalized mutual information for all n.net networks
     norm.mut.info.brim.vec<-c(norm.mut.info.brim.vec,norm.mut.infor(s.mat.gp.true,s.mat.brim.gp))
   }
