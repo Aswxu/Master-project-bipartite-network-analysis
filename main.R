@@ -332,7 +332,37 @@ proj.graph.1446<-bipartite_projection(graph.1446)$proj1
 lv.1446<-cluster_louvain(proj.graph.1446)
 wc.1446<-cluster_walktrap(proj.graph.1446)
 res.brim.1446<-findModules(as.matrix(adj.prime.mat.1446),spar=FALSE)
-plot(wc.1446,proj.graph.1446,layout=layout.fruchterman.reingold)
-write.csv(data.frame(Label=c(1:sum(ind.1446)),lv.membership=lv.1446$membership),file="nodename_pcode_1446_proj.csv")
+res.1446<-res.brim.1446$S[c(1:sum(ind.1446)),]
+brim.1446<-res.1446%*%as.numeric(row.names(t(res.1446)))
+write.csv(data.frame(Label=c(1:sum(ind.1446)),
+                     lv.membership=lv.1446$membership,
+                     wc.membership=wc.1446$membership,
+                     brim.membership=brim.1446),
+          file="nodename_pcode_1446_proj.csv")
 edgelist.1446.proj<-as_edgelist(proj.graph.1446)
-write.csv(data.frame(Source=edgelist.1446.proj[,1]-1,Target=edgelist.1446.proj[,2]-1,Type="Undirected",Weight=E(proj.graph.1446)$weight),file="edge_pcode_1446_proj.csv")
+write.csv(data.frame(Source=edgelist.1446.proj[,1]-1,
+                     Target=edgelist.1446.proj[,2]-1,
+                     Type="Undirected",Weight=E(proj.graph.1446)$weight),
+          file="edge_pcode_1446_proj.csv")
+
+
+#pcode 1153
+V(graph.1153)$name<-c(1:length(ind.1153))
+V(graph.1153)$type<-ind.1153==0
+proj.graph.1153<-bipartite_projection(graph.1153)$proj1
+lv.1153<-cluster_louvain(proj.graph.1153)
+wc.1153<-cluster_walktrap(proj.graph.1153)
+res.brim.1153<-findModules(as.matrix(adj.prime.mat.1153),spar=FALSE)
+res.1153<-res.brim.1153$S[c(1:sum(ind.1153)),]
+brim.1153<-res.1153%*%as.numeric(row.names(t(res.1153)))
+write.csv(data.frame(Label=c(1:sum(ind.1153)),
+                     lv.membership=lv.1153$membership,
+                     wc.membership=wc.1153$membership,
+                     brim.membership=brim.1153),
+          file="nodename_pcode_1153_proj.csv")
+edgelist.1153.proj<-as_edgelist(proj.graph.1153)
+write.csv(data.frame(Source=edgelist.1153.proj[,1]-1,
+                     Target=edgelist.1153.proj[,2]-1,
+                     Type="Undirected",
+                     Weight=E(proj.graph.1153)$weight),
+          file="edge_pcode_1153_proj.csv")
