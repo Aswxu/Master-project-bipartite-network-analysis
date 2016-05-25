@@ -5,12 +5,17 @@
 #install.packages("lpbrim", dependencies = TRUE)
 #install.packages("bipartite", dependencies = TRUE)
 #install.packages("Matrix", dependencies = TRUE)
+#install.packages("ggplot2", dependencies = TRUE)
+#install.packages("wesanderson")
 
 #library statements
 require(igraph)
 require(lpbrim)
 require(bipartite)
 require(Matrix)
+require(ggplot2)
+require(boot)
+require(wesanderson)
 
 #funtions that used later
 #function #1 that create links
@@ -118,6 +123,12 @@ proj.mut.info.walktrap<-function(link.data,ind.vec,n.net,s.mat.gp.true){
     V(temp.bipa.graph)$name<-c(1:(npa+ngp))
     V(temp.bipa.graph)$type<-ind.vec==0
     temp.proj.graph<-bipartite_projection(temp.bipa.graph)$proj1
+    
+    #wt <- cluster_walktrap(temp.proj.graph, modularity=TRUE)
+    #wc <- membership(cluster_walktrap(temp.proj.graph, 
+    #                    steps=which.max(wt$modularity)-1))
+    
+    #This might not be right
     wc<-membership(cluster_walktrap(temp.proj.graph,steps=5))
     s.mat.proj.gp<-matrix(0,ncol=max(wc),nrow=ngp)
     for(j in 1:ngp)s.mat.proj.gp[j,wc[j]]<-1
@@ -125,6 +136,8 @@ proj.mut.info.walktrap<-function(link.data,ind.vec,n.net,s.mat.gp.true){
   }
   norm.mut.info.proj.vec
 }
+
+
 
 #Part 1 #for a set p.in/p.out
 #control parameters
@@ -161,7 +174,6 @@ link.data<-link.create(ind.vec,comm.ind.true,p.in,p.out,n.net)
 #Bipartite-BRIM
 norm.mut.info.brim.vec<-brim.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
 
-
 #Projected Unipartite-louvain
 norm.mut.info.louvain.vec<-proj.mut.info.louvain(link.data,ind.vec,n.net,s.mat.gp.true)
 
@@ -169,8 +181,20 @@ norm.mut.info.louvain.vec<-proj.mut.info.louvain(link.data,ind.vec,n.net,s.mat.g
 norm.mut.info.walktrap.vec<-proj.mut.info.walktrap(link.data,ind.vec,n.net,s.mat.gp.true)
 
 
+#part 2 #ggplot
+#create the data.frame
+nmi.dataframe<-data.frame(nmi=c(norm.mut.info.walktrap.vec,norm.mut.info.louvain.vec,norm.mut.info.brim.vec),
+                          Method=c(rep("Walktrap",10000),rep("Louvain",10000),rep("LP-BRIM",10000)))
+graph3method <- ggplot(nmi.dataframe, aes(nmi))
+graph3method + geom_histogram(aes(fill=Method,y=..density..),alpha=0.5,size=0.2,colour='black',position='dodge')+ 
+  stat_density(geom='line',position='identity',size=0.7, aes(colour=Method))+
+  scale_fill_manual(values=wes_palette(n=3, name="FantasticFox"))+
+  scale_color_manual(values=wes_palette(n=3, name="FantasticFox"))+
+  scale_y_continuous("Density") +
+  scale_x_continuous("Normalized Mutual Information") 
 
-#Part 2 #for different set p.in/p.out
+
+#Part 3 #for different set p.in/p.out
 #I write it as a function
 #a huge one
 
@@ -185,7 +209,7 @@ set.seed(2389)
 p.in.upper=1
 p.in.lower=0.5
 p.out.lower=0.1
-step=0.01
+step=0.05
 
 #number of GP
 ngp<-20
@@ -201,7 +225,7 @@ n.net=1000
 
 
 
-#function #5 crazy function study for the possible influences for the p.in/p.out setting
+#function #6 crazy function study for the possible influences for the p.in/p.out setting
 crazy.function<-function(p.in.lower,p.in.upper,step,p.out.lower,n.net,ngp,npa,ncomm.true){
   result.list<-NULL
   p.in.vec<-seq(p.in.lower,p.in.upper,step)
@@ -248,7 +272,7 @@ cross.fingers<-crazy.function(p.in.lower,p.in.upper,step,p.out.lower,n.net,ngp,n
 
 
 
-#part3 ploting stuffs
+#part 4 #ploting stuffs
 #projection
 adj.mat<-matrix(c(rep(0,3),1,rep(0,3),1,rep(0,3),1,rep(1,3),0),nrow=4,ncol=4)
 temp.bipa.graph<-graph_from_adjacency_matrix(adj.mat,mode="undirected")
@@ -275,7 +299,7 @@ plot(temp.bipa.graph, layout = lay.bi[, c(1,2)],vertex.size=30,vertex.color="dar
 
 
 
-#real GP-patients dataset
+#part 6 #real GP-patients dataset
 #the scrambled_ppn have a initial shift of 99(1->100), therefore create a new raw.csv dataset file.
 raw<-read.csv("raw.csv",header=TRUE)
 #max(table(raw$scrambled_pcode))
