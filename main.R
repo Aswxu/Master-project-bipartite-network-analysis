@@ -129,7 +129,7 @@ proj.mut.info.walktrap<-function(link.data,ind.vec,n.net,s.mat.gp.true){
     #                    steps=which.max(wt$modularity)-1))
     
     #This might not be right
-    wc<-membership(cluster_walktrap(temp.proj.graph,steps=5))
+    wc<-membership(cluster_walktrap(temp.proj.graph,steps=4))
     s.mat.proj.gp<-matrix(0,ncol=max(wc),nrow=ngp)
     for(j in 1:ngp)s.mat.proj.gp[j,wc[j]]<-1
     norm.mut.info.proj.vec<-c(norm.mut.info.proj.vec,norm.mut.infor(s.mat.gp.true,s.mat.proj.gp))
@@ -183,14 +183,27 @@ norm.mut.info.walktrap.vec<-proj.mut.info.walktrap(link.data,ind.vec,n.net,s.mat
 
 #part 2 #ggplot
 #create the data.frame
-nmi.dataframe<-data.frame(nmi=c(norm.mut.info.walktrap.vec,norm.mut.info.louvain.vec,norm.mut.info.brim.vec),
-                          Method=c(rep("Walktrap",10000),rep("Louvain",10000),rep("LP-BRIM",10000)))
+#random assignment
+random.assign<-NULL
+for(j in 1:10000){
+  random.ncomm<-ceiling(runif(1,0,ngp))
+  comm.ind.temp<-as.matrix(ceiling(runif(ngp,0,ncomm.true)))
+  s.mat.gp.temp<-matrix(0,ncol=ncomm.true,nrow=ngp)
+  for(i in 1:ngp){
+    s.mat.gp.temp[i,comm.ind.temp[i]]<-1
+  }
+  random.assign<-c(random.assign,norm.mut.infor(s.mat.gp.true,s.mat.gp.temp))
+}
+nmi.dataframe<-data.frame(nmi=c(norm.mut.info.walktrap.vec,norm.mut.info.louvain.vec,norm.mut.info.brim.vec,random.assign),
+                          Method=c(rep("Walktrap",10000),rep("Louvain",10000),rep("LP-BRIM",10000),rep("Random",10000)))
 graph3method <- ggplot(nmi.dataframe, aes(nmi))
-graph3method + geom_histogram(aes(fill=Method,y=..density..),alpha=0.5,size=0.2,colour='black',position='dodge')+ 
+graph3method + geom_histogram(aes(fill=Method,y=..density..),alpha=0.7,size=0.2,colour='black',position='dodge',bins=15)+ 
   stat_density(geom='line',position='identity',size=0.7, aes(colour=Method))+
-  scale_fill_manual(values=wes_palette(n=3, name="FantasticFox"))+
-  scale_color_manual(values=wes_palette(n=3, name="FantasticFox"))+
-  scale_y_continuous("Density") +
+  #scale_fill_manual(values=wes_palette(n=4, name="FantasticFox"))+
+  #scale_color_manual(values=wes_palette(n=4, name="FantasticFox"))+
+  scale_fill_brewer(palette="Set1")+
+  scale_color_brewer(palette="Set1")+
+  scale_y_continuous("Density")+
   scale_x_continuous("Normalized Mutual Information") 
 
 
@@ -209,7 +222,7 @@ set.seed(2389)
 p.in.upper=1
 p.in.lower=0.5
 p.out.lower=0.1
-step=0.05
+step=0.02
 
 #number of GP
 ngp<-20
@@ -249,10 +262,12 @@ crazy.function<-function(p.in.lower,p.in.upper,step,p.out.lower,n.net,ngp,npa,nc
       #Bipartite-BRIM
       norm.mut.info.brim.vec<-brim.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
       
-      #Projected Unipartite-optimal?
-      norm.mut.info.proj.vec<-proj.mut.info(link.data,ind.vec,n.net,s.mat.gp.true)
+      #Projected Unipartite-walktrap
+      norm.mut.info.wt.vec<-proj.mut.info.walktrap(link.data,ind.vec,n.net,s.mat.gp.true)
       
-      temp.result.list<-list(p.in=p.in,p.out=p.out,BRIM=norm.mut.info.brim.vec,Projection=norm.mut.info.proj.vec)
+      norm.mut.info.lv.vec<-proj.mut.info.louvain(link.data,ind.vec,n.net,s.mat.gp.true)
+      
+      temp.result.list<-list(p.in=p.in,p.out=p.out,BRIM=norm.mut.info.brim.vec,Walktrap=norm.mut.info.wt.vec,Louvain=norm.mut.info.lv.vec)
       
       temp.result.list.sub[[length(temp.result.list.sub)+1]]<-temp.result.list
     }
@@ -262,7 +277,7 @@ crazy.function<-function(p.in.lower,p.in.upper,step,p.out.lower,n.net,ngp,npa,nc
 }
 
 
-
+#it is working now!
 cross.fingers<-crazy.function(p.in.lower,p.in.upper,step,p.out.lower,n.net,ngp,npa,ncomm.true)
 
 
@@ -294,6 +309,23 @@ plot(temp.bipa.graph, layout = lay.bi[, c(1,2)],vertex.size=30,vertex.color="dar
 
 
 
+
+#part 5# weird peak in walktrap of nmi==0.6869212 which is actually the maxium
+#norm.mut.info.walktrap.vec[norm.mut.info.walktrap.vec>0.66]==0.6869212
+#weird.ind<-norm.mut.info.walktrap.vec>0.66
+#weird.network.samples<-link.data[weird.ind]
+#  #make adjacency matrix
+#  link.data.adj<-rbind(cbind(matrix(rep(0,ngp^2),ncol=ngp),weird.network.samples[[1]]),cbind(t(weird.network.samples[[1]]),matrix(rep(0,npa^2),ncol=npa)))
+#  #produce the bipartite graph object
+#  temp.bipa.graph<-graph_from_adjacency_matrix(link.data.adj)
+#  V(temp.bipa.graph)$name<-c(1:(npa+ngp))
+#  V(temp.bipa.graph)$type<-ind.vec==0
+#  temp.proj.graph<-bipartite_projection(temp.bipa.graph)$proj1
+#  
+#  wc<-walktrap.community(temp.proj.graph,steps=5)
+#  plot(wc, temp.proj.graph, mark.col=heat.colors(length(wc)),
+#       col=rainbow(length(wc))[membership(wc)])
+#the conclusion is that each vertex are assigned into separete communities
 
 
 
@@ -390,3 +422,89 @@ write.csv(data.frame(Source=edgelist.1153.proj[,1]-1,
                      Type="Undirected",
                      Weight=E(proj.graph.1153)$weight),
           file="edge_pcode_1153_proj.csv")
+
+
+
+#part 7 # look deeper for the sample which have highest differeces between lpbrim and louvain
+#max(norm.mut.info.brim.vec)
+#[1] 0.8101614
+#c(1:10000)[norm.mut.info.brim.vec==max(norm.mut.info.brim.vec)]
+#[1] 2299 7952
+#make adjacency matrix
+dl.ind=2292
+deeplook<-rbind(cbind(matrix(rep(0,ngp^2),ncol=ngp),link.data[[dl.ind]]),cbind(t(link.data[[dl.ind]]),matrix(rep(0,npa^2),ncol=npa)))
+#produce the bipartite graph object
+deeplook.bipa.graph<-graph_from_adjacency_matrix(deeplook)
+V(deeplook.bipa.graph)$name<-c(1:(npa+ngp))
+V(deeplook.bipa.graph)$type<-ind.vec==0
+
+deeplook.proj.graph<-bipartite_projection(deeplook.bipa.graph)$proj1
+deeplook.lv<-membership(cluster_louvain(deeplook.proj.graph))
+deeplook.lv<-c(deeplook.lv+1,rep(1,npa))
+
+res.brim.deeplook<-findModules(link.data[[dl.ind]],spar=FALSE)
+res.deeplook<-res.brim.deeplook$S[c(1:sum(ind.vec)),]
+deeplook.brim<-res.deeplook%*%as.numeric(row.names(t(res.deeplook)))
+deeplook.brim<-c(deeplook.brim+1,rep(1,npa))
+
+deeplook.true<-comm.ind.true[c(1:20)]
+deeplook.true<-c(deeplook.true+1,rep(1,npa))
+
+write.csv(data.frame(Label=c(1:70),
+                     deeplook.lv=deeplook.lv,
+                     deeplook.brim=deeplook.brim,
+                     deeplook.true=deeplook.true,
+                     isgp=ind.vec),
+          file="nodename_deeplook.csv")
+edgelist.deeplook<-as_edgelist(deeplook.bipa.graph)
+write.csv(data.frame(Source=edgelist.deeplook[,1]-1,
+                     Target=edgelist.deeplook[,2]-1,
+                     Type="Directed"),
+          file="edge__deeplook.csv")
+#not making sense
+
+
+#part 8 # t-test and bootstrap
+t.fun<-function(d,i){
+  boot.sample<-d[i]
+  m<-mean(boot.sample)
+  s<-sd(boot.sample)
+  t<-(m)/s*sqrt(length(boot.sample))
+  t
+}
+#A
+sa<-norm.mut.info.brim.vec-norm.mut.info.walktrap.vec
+#t-statistic function for bootstrap
+find.t<-function(t){
+  a<-exp(t*sa)
+  p<-a/sum(a)
+  out<-sum(p*sa)
+  out
+}
+t.root<-uniroot(find.t,c(-7,7))$root
+temp<-exp(t.root*sa)
+p.a<-temp/sum(temp)
+B=5000
+boot.obj.a<-boot(sa,t.fun,B,stype="i",weights=p.a)
+p.val.a<-sum(boot.obj.a$t>=boot.obj.a$t0)/B
+#B
+sb<-norm.mut.info.brim.vec-norm.mut.info.louvain.vec
+find.t<-function(t){
+  a<-exp(t*sb)
+  p<-a/sum(a)
+  out<-sum(p*sb)
+  out
+}
+t.root<-uniroot(find.t,c(-7,7))$root
+temp<-exp(t.root*sb)
+p.b<-temp/sum(temp)
+B=5000
+boot.obj.b<-boot(sb,t.fun,B,stype="i",weights=p.b)
+p.val.b<-sum(boot.obj.b$t>=boot.obj.b$t0)/B
+
+#describe expect lpbrim
+mean(norm.mut.info.brim.vec)
+var(norm.mut.info.brim.vec)
+w=sort(norm.mut.info.brim.vec)
+w[0.025*10000+1]
+w[0.975*10000]
